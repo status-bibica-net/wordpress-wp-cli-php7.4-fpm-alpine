@@ -1,19 +1,13 @@
-#
-# NOTE: THIS DOCKERFILE IS GENERATED VIA "apply-templates.sh"
-#
-# PLEASE DO NOT EDIT IT DIRECTLY.
-#
+FROM php:8.3-fpm-alpine
 
-FROM php:8.4-fpm-alpine
-
-RUN apt-get update -qq && \
-    apt-get install -qy \
+RUN apk update && \
+    apk add --no-cache \
     git \
     gnupg \
     unzip \
-    zip && \
-    curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer && \
-    apt-get clean && rm -rf /var/lib/apt/lists/* /var/log/*
+    zip \
+    curl && \
+    curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 # Add WP CLI
 RUN curl -o /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar   && chmod +x /usr/local/bin/wp    

@@ -1,8 +1,11 @@
 # wordpress-php8.4-fpm-alpine
 
-* Phiên bản wordpress-wp-cli-php8.4-fpm-alpine được làm theo cấu trúc gốc của wordpress:php8.3-fpm-alpine từ WordPress
+Cập nhập PHP8.4 cho [Docker-LCMP-Multisite](https://github.com/bibicadotnet/Docker-LCMP-Multisite-WordPress-Minimal)
+
+Không rõ lắm lý do vì sao WordPress chưa làm bản images cho PHP 8.4, nên làm theo cấu trúc Dockerfile các bản cũ hơn của WordPress
+
 * Giữ nguyên mọi extensions như bản gốc và bổ xung thêm WP-CLI 2.11.0
-* Sử dụng docker-php-extension-installer để cài đặt các extensions
+* Sử dụng [docker-php-extension-installer](https://github.com/mlocati/docker-php-extension-installer) để cài đặt các extensions
 
 ```
 PHP 8.4.2 (cli) (built: Jan  8 2025 19:12:14) (NTS)

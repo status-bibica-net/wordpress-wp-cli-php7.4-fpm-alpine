@@ -9,7 +9,7 @@ Không rõ lắm lý do vì sao WordPress chưa làm bản images cho PHP 8.4, n
 * Sử dụng [docker-php-extension-installer](https://github.com/mlocati/docker-php-extension-installer) để cài đặt các extensions
 * Giữ nguyên mọi extensions như bản gốc và bổ xung thêm WP-CLI 2.11.0
 * Duy trì trên 2 nền tảng thông dụng amd64 và arm64
-* Cập nhập 1 ngày 1 lần lúc 0h sáng theo giờ Việt Nam (UTC +7) nhằm đảm bảo luôn sử dụng các phiên bản mới nhất
+* Cập nhập 1 ngày 1 lần lúc 0h sáng theo giờ Việt Nam (UTC +7), đảm bảo luôn sử dụng các phiên bản mới nhất
 
 ```
 PHP 8.4.2 (cli) (built: Jan  8 2025 19:12:14) (NTS)

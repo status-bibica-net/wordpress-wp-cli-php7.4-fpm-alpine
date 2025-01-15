@@ -23,7 +23,7 @@ RUN set -eux; \
         imagick@stable; \
     \
     # Configure PHP settings
-    docker-php-ext-enable opcache@stable; \
+    docker-php-ext-enable opcache; \
     { \
         echo 'opcache.memory_consumption=128'; \
         echo 'opcache.interned_strings_buffer=8'; \

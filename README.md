@@ -2,10 +2,13 @@
 
 Cập nhập PHP8.4 cho [Docker-LCMP-Multisite](https://github.com/bibicadotnet/Docker-LCMP-Multisite-WordPress-Minimal)
 
-Không rõ lắm lý do vì sao WordPress chưa làm bản images cho PHP 8.4, nên làm theo cấu trúc Dockerfile các bản cũ hơn của WordPress
+```docker pull bibica/wordpress-wp-cli-php8.4-fpm-alpine:latest```
+
+Không rõ lắm lý do vì sao WordPress chưa làm bản images cho PHP 8.4, nên làm dựa cấu trúc Dockerfile các bản cũ hơn của WordPress
 
 * Giữ nguyên mọi extensions như bản gốc và bổ xung thêm WP-CLI 2.11.0
 * Sử dụng [docker-php-extension-installer](https://github.com/mlocati/docker-php-extension-installer) để cài đặt các extensions
+* Duy trì trên 2 nền tảng thông dụng amd64 và arm64
 
 ```
 PHP 8.4.2 (cli) (built: Jan  8 2025 19:12:14) (NTS)

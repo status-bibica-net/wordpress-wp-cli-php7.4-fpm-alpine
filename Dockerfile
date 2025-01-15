@@ -5,10 +5,12 @@ ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/do
 
 RUN chmod +x /usr/local/bin/install-php-extensions
 
-# Combine all installations into a single RUN command to reduce layers
+# Install dependencies and PHP extensions in a single RUN layer
 RUN set -eux; \
-    # Install persistent dependencies
-    apk add --no-cache bash ghostscript; \
+    # Install runtime dependencies (only what's absolutely necessary)
+    apk add --no-cache \
+        bash \
+        ghostscript; \
     \
     # Install PHP extensions using docker-php-extension-installer
     install-php-extensions \
@@ -19,12 +21,6 @@ RUN set -eux; \
         mysqli \
         zip \
         imagick; \
-    \
-    # Check for extension issues
-    out="$(php -r 'exit(0);')"; \
-    [ -z "$out" ]; \
-    err="$(php -r 'exit(0);' 3>&1 1>&2 2>&3)"; \
-    [ -z "$err" ]; \
     \
     # Configure PHP settings
     docker-php-ext-enable opcache; \
@@ -48,7 +44,11 @@ RUN set -eux; \
         echo 'html_errors = Off'; \
     } > /usr/local/etc/php/conf.d/error-logging.ini; \
     \
-    # Install WordPress
+    # Clean up unnecessary files
+    rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
+
+# Install WordPress
+RUN set -eux; \
     version='6.7.1'; \
     sha1='dfb745d4067368bb9a9491f2b6f7e8d52d740fd1'; \
     curl -o wordpress.tar.gz -fL "https://wordpress.org/wordpress-$version.tar.gz"; \
@@ -74,20 +74,17 @@ RUN set -eux; \
     \
     # Set up WordPress directories
     chown -R www-data:www-data /usr/src/wordpress; \
-    mkdir wp-content; \
+    mkdir -p wp-content; \
     for dir in /usr/src/wordpress/wp-content/*/ cache; do \
         dir="$(basename "${dir%/}")"; \
-        mkdir "wp-content/$dir"; \
+        mkdir -p "wp-content/$dir"; \
     done; \
     chown -R www-data:www-data wp-content; \
     chmod -R 1777 wp-content; \
     \
     # Install WP-CLI
     curl -o /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar; \
-    chmod +x /usr/local/bin/wp; \
-    \
-    # Clean up
-    rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
+    chmod +x /usr/local/bin/wp
 
 VOLUME /var/www/html
 

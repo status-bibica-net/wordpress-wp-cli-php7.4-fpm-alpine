@@ -2,31 +2,26 @@ name: Build and Push Docker Image
 
 on:
   schedule:
-    # Tự động chạy hàng ngày vào 0h theo múi giờ Việt Nam (UTC+7)
     - cron: "0 17 * * *"
-  workflow_dispatch: # Cho phép chạy thủ công nếu cần
+  workflow_dispatch:
 
 jobs:
   build-and-push:
     runs-on: ubuntu-22.04
 
     steps:
-      # Checkout mã nguồn
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Cài đặt buildx
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2        
+        uses: docker/setup-buildx-action@v2
 
-      # Đăng nhập vào Docker Hub
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Build Docker image và lưu thành tệp tar
       - name: Build Docker image
         id: build
         uses: docker/build-push-action@v4
@@ -36,21 +31,26 @@ jobs:
           platforms: linux/amd64,linux/arm64
           output: type=docker,dest=./image.tar
 
-      # Kiểm tra tệp đã được lưu
+      - name: Check if image.tar exists
+        run: |
+          if [ -f ./image.tar ]; then
+            echo "image.tar exists."
+          else
+            echo "image.tar does not exist."
+            exit 1
+          fi
+
       - name: List files in the current directory
         run: ls -al
 
-      # Cài đặt docker-squash
       - name: Install docker-squash
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-pip
           sudo pip3 install docker-squash
 
-      # Squash Docker image
       - name: Squash Docker image
         run: |
-          # Kiểm tra tệp image.tar có tồn tại không
           if [ -f ./image.tar ]; then
             docker load -i ./image.tar
             docker-squash -f bibica/wordpress-wp-cli-php8.4-fpm-alpine:latest -o ./wordpress-wp-cli-php8.4-fpm-alpine-squashed.tar
@@ -59,7 +59,6 @@ jobs:
             exit 1
           fi
 
-      # Push Docker image after squashing
       - name: Push squashed Docker image
         run: |
           docker load -i ./wordpress-wp-cli-php8.4-fpm-alpine-squashed.tar

@@ -1,49 +1,130 @@
+#
+# NOTE: THIS DOCKERFILE IS GENERATED VIA "apply-templates.sh"
+#
+# PLEASE DO NOT EDIT IT DIRECTLY.
+#
+
 FROM php:8.4-fpm-alpine
 
-ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+# persistent dependencies
+RUN set -eux; \
+	apk add --no-cache \
+# in theory, docker-entrypoint.sh is POSIX-compliant, but priority is a working, consistent image
+		bash \
+# Ghostscript is required for rendering PDF previews
+		ghostscript \
+# Alpine package for "imagemagick" contains ~120 .so files, see: https://github.com/docker-library/wordpress/pull/497
+		imagemagick \
+	;
 
-RUN apk update && apk upgrade
-
-# Install dependencies
-RUN apk add mariadb-client ca-certificates postgresql-dev libssh-dev zip libzip-dev libxml2-dev jpegoptim optipng pngquant gifsicle libxslt-dev rabbitmq-c-dev icu-dev oniguruma-dev gmp-dev
-
-RUN apk add freetype-dev libjpeg-turbo-dev libpng-dev jpeg-dev libwebp-dev
-
-RUN apk add supervisor bash curl unzip git
-
-# RUN apk add --update linux-headers
-# RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
-#     && pecl install xdebug \
-#     && docker-php-ext-enable xdebug \
-#     && apk del -f .build-deps
-RUN apk add --update linux-headers
-
-RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
-    # Manually download and install Xdebug compatible with PHP 8.4
-    && mkdir -p /usr/src/php/ext/xdebug \
-    && curl -fsSL https://xdebug.org/files/xdebug-3.4.0beta1.tgz | tar xvz -C /usr/src/php/ext/xdebug --strip 1 \
-    && docker-php-ext-install xdebug \
-    && git clone https://github.com/phpredis/phpredis.git /usr/src/php/ext/redis \
-    && cd /usr/src/php/ext/redis \
+# install the PHP extensions we need (https://make.wordpress.org/hosting/handbook/handbook/server-environment/#php-extensions)
+RUN set -ex; \
+	\
+	apk add --no-cache --virtual .build-deps \
+		$PHPIZE_DEPS \
+		freetype-dev \
+		icu-dev \
+		imagemagick-dev libheif-dev \
+		libavif-dev \
+		libjpeg-turbo-dev \
+		libpng-dev \
+		libwebp-dev \
+		libzip-dev \
+	; \
+	\
+	docker-php-ext-configure gd \
+		--with-avif \
+		--with-freetype \
+		--with-jpeg \
+		--with-webp \
+	; \
+	docker-php-ext-install -j "$(nproc)" \
+		bcmath \
+		exif \
+		gd \
+		intl \
+		mysqli \
+		zip \
+	; \
+# WARNING: imagick is likely not supported on Alpine: https://github.com/Imagick/imagick/issues/328
+# https://pecl.php.net/package/imagick
+# https://github.com/Imagick/imagick/commit/5ae2ecf20a1157073bad0170106ad0cf74e01cb6 (causes a lot of build failures, but strangely only intermittent ones 🤔)
+# see also https://github.com/Imagick/imagick/pull/641
+# this is "pecl install imagick-3.7.0", but by hand so we can apply a small hack / part of the above commit
+# Imagick
+ARG IMAGICK_VERSION=3.7.0
+RUN set -eux \
+    && apk add --no-cache \
+      imagemagick \
+      jpegoptim \
+      libwebp \
+      libwebp-tools \
+    && apk add --no-cache --virtual .imagick-deps \
+      $PHPIZE_DEPS \
+      imagemagick-dev \
+      libjpeg-turbo-dev \
+      libpng-dev \
+      libwebp-dev \
+#    && pecl install imagick-"$IMAGICK_VERSION" \
+#    && docker-php-ext-enable imagick \
+#    && apk del .imagick-deps
+    && curl -L -o /tmp/imagick.tar.gz https://github.com/Imagick/imagick/archive/tags/${IMAGICK_VERSION}.tar.gz \
+    && tar --strip-components=1 -xf /tmp/imagick.tar.gz \
+    && sed -i 's/php_strtolower/zend_str_tolower/g' imagick.c \
     && phpize \
     && ./configure \
     && make \
     && make install \
-    && docker-php-ext-enable redis \
-    && apk del .build-deps
+    && echo "extension=imagick.so" > /usr/local/etc/php/conf.d/ext-imagick.ini \
+    && rm -rf /tmp/* \
+    && apk del .imagick-deps
+    
+# some misbehaving extensions end up outputting to stdout 🙈 (https://github.com/docker-library/wordpress/issues/669#issuecomment-993945967)
+	out="$(php -r 'exit(0);')"; \
+	[ -z "$out" ]; \
+	err="$(php -r 'exit(0);' 3>&1 1>&2 2>&3)"; \
+	[ -z "$err" ]; \
+	\
+	extDir="$(php -r 'echo ini_get("extension_dir");')"; \
+	[ -d "$extDir" ]; \
+	runDeps="$( \
+		scanelf --needed --nobanner --format '%n#p' --recursive "$extDir" \
+			| tr ',' '\n' \
+			| sort -u \
+			| awk 'system("[ -e /usr/local/lib/" $1 " ]") == 0 { next } { print "so:" $1 }' \
+	)"; \
+	apk add --no-network --virtual .wordpress-phpexts-rundeps $runDeps; \
+	apk del --no-network .build-deps; \
+	\
+	! { ldd "$extDir"/*.so | grep 'not found'; }; \
+# check for output like "PHP Warning:  PHP Startup: Unable to load dynamic library 'foo' (tried: ...)
+	err="$(php --version 3>&1 1>&2 2>&3)"; \
+	[ -z "$err" ]
 
-# Install extensions
-RUN chmod +x /usr/local/bin/install-php-extensions && \
-    install-php-extensions zip opcache pdo_mysql pdo_pgsql mysqli bcmath sockets xsl exif intl gmp pcntl gd
-
-
-#RUN docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg --with-webp && docker-php-ext-install gd
-
-WORKDIR /var/www
-
-# Expose port 9000 and start php-fpm server
-EXPOSE 9000
-CMD ["php-fpm"]
+# set recommended PHP.ini settings
+# see https://secure.php.net/manual/en/opcache.installation.php
+RUN set -eux; \
+	docker-php-ext-enable opcache; \
+	{ \
+		echo 'opcache.memory_consumption=128'; \
+		echo 'opcache.interned_strings_buffer=8'; \
+		echo 'opcache.max_accelerated_files=4000'; \
+		echo 'opcache.revalidate_freq=2'; \
+	} > /usr/local/etc/php/conf.d/opcache-recommended.ini
+# https://wordpress.org/support/article/editing-wp-config-php/#configure-error-logging
+RUN { \
+# https://www.php.net/manual/en/errorfunc.constants.php
+# https://github.com/docker-library/wordpress/issues/420#issuecomment-517839670
+		echo 'error_reporting = E_ERROR | E_WARNING | E_PARSE | E_CORE_ERROR | E_CORE_WARNING | E_COMPILE_ERROR | E_COMPILE_WARNING | E_RECOVERABLE_ERROR'; \
+		echo 'display_errors = Off'; \
+		echo 'display_startup_errors = Off'; \
+		echo 'log_errors = On'; \
+		echo 'error_log = /dev/stderr'; \
+		echo 'log_errors_max_len = 1024'; \
+		echo 'ignore_repeated_errors = On'; \
+		echo 'ignore_repeated_source = Off'; \
+		echo 'html_errors = Off'; \
+	} > /usr/local/etc/php/conf.d/error-logging.ini
 
 RUN set -eux; \
 	version='6.7.1'; \

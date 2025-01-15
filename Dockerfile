@@ -1,18 +1,16 @@
 FROM php:8.4-fpm-alpine
 
-# Install docker-php-extension-installer
+# Add docker-php-extension-installer
 ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
 
-# Ensure /usr/local/bin exists and set permissions
-RUN mkdir -p /usr/local/bin && \
-    chmod +x /usr/local/bin/install-php-extensions && \
-    set -eux; \
-    # Install runtime dependencies (only what's absolutely necessary)
+RUN set -eux; \
+    # Set up docker-php-extension-installer
+    chmod +x /usr/local/bin/install-php-extensions; \
+    \
+    # Install runtime dependencies and PHP extensions
     apk add --no-cache \
         bash \
         ghostscript; \
-    \
-    # Install PHP extensions using docker-php-extension-installer
     install-php-extensions \
         bcmath \
         exif \
@@ -21,17 +19,15 @@ RUN mkdir -p /usr/local/bin && \
         mysqli \
         zip \
         imagick; \
+    docker-php-ext-enable opcache; \
     \
     # Configure PHP settings
-    docker-php-ext-enable opcache; \
     { \
         echo 'opcache.memory_consumption=128'; \
         echo 'opcache.interned_strings_buffer=8'; \
         echo 'opcache.max_accelerated_files=4000'; \
         echo 'opcache.revalidate_freq=2'; \
     } > /usr/local/etc/php/conf.d/opcache-recommended.ini; \
-    \
-    # Configure error logging
     { \
         echo 'error_reporting = E_ERROR | E_WARNING | E_PARSE | E_CORE_ERROR | E_CORE_WARNING | E_COMPILE_ERROR | E_COMPILE_WARNING | E_RECOVERABLE_ERROR'; \
         echo 'display_errors = Off'; \
@@ -44,9 +40,6 @@ RUN mkdir -p /usr/local/bin && \
         echo 'html_errors = Off'; \
     } > /usr/local/etc/php/conf.d/error-logging.ini; \
     \
-    # Clean up unnecessary files
-    rm -rf /var/cache/apk/* /tmp/* /var/tmp/* && \
-    \
     # Install WordPress
     version='6.7.1'; \
     sha1='dfb745d4067368bb9a9491f2b6f7e8d52d740fd1'; \
@@ -54,8 +47,6 @@ RUN mkdir -p /usr/local/bin && \
     echo "$sha1 *wordpress.tar.gz" | sha1sum -c -; \
     tar -xzf wordpress.tar.gz -C /usr/src/; \
     rm wordpress.tar.gz; \
-    \
-    # Configure WordPress
     [ ! -e /usr/src/wordpress/.htaccess ]; \
     { \
         echo '# BEGIN WordPress'; \
@@ -70,8 +61,6 @@ RUN mkdir -p /usr/local/bin && \
         echo ''; \
         echo '# END WordPress'; \
     } > /usr/src/wordpress/.htaccess; \
-    \
-    # Set up WordPress directories
     chown -R www-data:www-data /usr/src/wordpress; \
     mkdir -p wp-content; \
     for dir in /usr/src/wordpress/wp-content/*/ cache; do \
@@ -83,14 +72,16 @@ RUN mkdir -p /usr/local/bin && \
     \
     # Install WP-CLI
     curl -o /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar; \
-    chmod +x /usr/local/bin/wp
+    chmod +x /usr/local/bin/wp; \
+    \
+    # Clean up unnecessary files
+    rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
 
 VOLUME /var/www/html
 
-# Copy and set permissions for wp-config-docker.php and docker-entrypoint.sh
 COPY --chown=www-data:www-data wp-config-docker.php /usr/src/wordpress/
-COPY docker-entrypoint.sh /usr/local/bin/ && \
-    chmod +x /usr/local/bin/docker-entrypoint.sh
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["php-fpm"]

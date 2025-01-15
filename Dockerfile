@@ -11,7 +11,7 @@ RUN set -eux; \
     \
     # Install PHP extensions using docker-php-extension-installer
     install-php-extensions \
-        bcmath@stable \
+        bcmath-^@stable \
         exif \
         gd \
         intl \

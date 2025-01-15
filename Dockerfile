@@ -1,10 +1,7 @@
 FROM php:8.4-fpm-alpine
-
 # Install docker-php-extension-installer
 ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
-
 RUN chmod +x /usr/local/bin/install-php-extensions
-
 # Install dependencies and PHP extensions in a single RUN layer
 RUN set -eux; \
     # Install runtime dependencies (only what's absolutely necessary)
@@ -45,8 +42,15 @@ RUN set -eux; \
     } > /usr/local/etc/php/conf.d/error-logging.ini; \
     \
     # Clean up unnecessary files
-    rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
-
+    rm -rf \
+        /var/cache/apk/* \
+        /tmp/* \
+        /var/tmp/* \
+        /usr/src/php.tar.* \
+        /usr/src/php/ext/*/tmp* \
+        /usr/src/php/ext/*/modules/* \
+        /usr/local/lib/php/extensions/*/*.a \
+        /usr/local/lib/php/extensions/*/*.so.debug
 # Install WordPress
 RUN set -eux; \
     version='latest'; \
@@ -82,13 +86,21 @@ RUN set -eux; \
     \
     # Install WP-CLI
     curl -o /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar; \
-    chmod +x /usr/local/bin/wp
-
+    chmod +x /usr/local/bin/wp; \
+    \
+    # Clean up WordPress and WP-CLI temporary files
+    rm -rf \
+        /usr/src/wordpress/.git* \
+        /usr/src/wordpress/wp-content/cache/* \
+        /usr/src/wordpress/wp-content/upgrade/* \
+        /root/.wp-cli/cache/* \
+        /tmp/* \
+        /var/cache/* \
+        /var/tmp/* \
+        /usr/src/wordpress/wp-content/debug.log
 VOLUME /var/www/html
-
 COPY --chown=www-data:www-data wp-config-docker.php /usr/src/wordpress/
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["php-fpm"]

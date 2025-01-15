@@ -3,7 +3,6 @@ FROM php:8.4-fpm-alpine
 # Install docker-php-extension-installer
 ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
 
-# Install dependencies and PHP extensions in a single RUN layer
 RUN set -eux; \
     # Install runtime dependencies (only what's absolutely necessary)
     apk add --no-cache \

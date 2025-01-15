@@ -26,10 +26,31 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Build và push image đa nền tảng
-      - name: Build and push Docker image
+      # Build Docker image
+      - name: Build Docker image
+        id: build
         uses: docker/build-push-action@v4
         with:
-          push: true
+          push: false
           tags: bibica/wordpress-wp-cli-php8.4-fpm-alpine
           platforms: linux/amd64,linux/arm64
+
+      # Cài đặt docker-squash
+      - name: Install docker-squash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip
+          sudo pip3 install docker-squash
+
+      # Squash Docker image
+      - name: Squash Docker image
+        run: |
+          docker load -i ${{ steps.build.outputs.image }}
+          docker-squash -f bibica/wordpress-wp-cli-php8.4-fpm-alpine:latest -o bibica/wordpress-wp-cli-php8.4-fpm-alpine-squashed.tar
+
+      # Push Docker image after squashing
+      - name: Push squashed Docker image
+        run: |
+          docker load -i bibica/wordpress-wp-cli-php8.4-fpm-alpine-squashed.tar
+          docker tag bibica/wordpress-wp-cli-php8.4-fpm-alpine-squashed bibica/wordpress-wp-cli-php8.4-fpm-alpine
+          docker push bibica/wordpress-wp-cli-php8.4-fpm-alpine

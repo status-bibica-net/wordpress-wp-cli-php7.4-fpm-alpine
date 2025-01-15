@@ -37,24 +37,28 @@ jobs:
           platforms: linux/amd64
           output: type=docker,dest=./image-amd64.tar
 
-      # Bước 5: Build và lưu image cho linux/arm64
-      - name: Build Docker image for linux/arm64
-        id: build-arm64
-        uses: docker/build-push-action@v4
-        with:
-          push: false
-          tags: bibica/wordpress-wp-cli-php8.4-fpm-alpine
-          platforms: linux/arm64
-          output: type=docker,dest=./image-arm64.tar
+      # Bước 5: Kiểm tra xem tệp image-amd64.tar có tồn tại không
+      - name: Check if image-amd64.tar exists
+        run: |
+          if [ -f ./image-amd64.tar ]; then
+            echo "image-amd64.tar exists."
+          else
+            echo "image-amd64.tar does not exist."
+            exit 1
+          fi
 
-      # Bước 6: Cài đặt docker-squash
+      # Bước 6: Liệt kê các tệp trong thư mục hiện tại
+      - name: List files in the current directory
+        run: ls -al
+
+      # Bước 7: Cài đặt docker-squash
       - name: Install docker-squash
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-pip
           sudo pip3 install docker-squash
 
-      # Bước 7: Squash image cho linux/amd64
+      # Bước 8: Squash image cho linux/amd64
       - name: Squash Docker image for linux/amd64
         run: |
           if [ -f ./image-amd64.tar ]; then
@@ -65,35 +69,9 @@ jobs:
             exit 1
           fi
 
-      # Bước 8: Squash image cho linux/arm64
-      - name: Squash Docker image for linux/arm64
-        run: |
-          if [ -f ./image-arm64.tar ]; then
-            docker load -i ./image-arm64.tar
-            docker-squash -f bibica/wordpress-wp-cli-php8.4-fpm-alpine:latest -o ./image-arm64-squashed.tar
-          else
-            echo "Tệp image-arm64.tar không tìm thấy."
-            exit 1
-          fi
-
       # Bước 9: Load và push image đã squash cho linux/amd64
       - name: Push squashed Docker image for linux/amd64
         run: |
           docker load -i ./image-amd64-squashed.tar
           docker tag bibica/wordpress-wp-cli-php8.4-fpm-alpine:latest bibica/wordpress-wp-cli-php8.4-fpm-alpine:amd64
           docker push bibica/wordpress-wp-cli-php8.4-fpm-alpine:amd64
-
-      # Bước 10: Load và push image đã squash cho linux/arm64
-      - name: Push squashed Docker image for linux/arm64
-        run: |
-          docker load -i ./image-arm64-squashed.tar
-          docker tag bibica/wordpress-wp-cli-php8.4-fpm-alpine:latest bibica/wordpress-wp-cli-php8.4-fpm-alpine:arm64
-          docker push bibica/wordpress-wp-cli-php8.4-fpm-alpine:arm64
-
-      # Bước 11: Tạo và push manifest cho multi-platform
-      - name: Create and push multi-platform manifest
-        run: |
-          docker manifest create bibica/wordpress-wp-cli-php8.4-fpm-alpine:latest \
-            --amend bibica/wordpress-wp-cli-php8.4-fpm-alpine:amd64 \
-            --amend bibica/wordpress-wp-cli-php8.4-fpm-alpine:arm64
-          docker manifest push bibica/wordpress-wp-cli-php8.4-fpm-alpine:latest

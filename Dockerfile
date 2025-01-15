@@ -5,6 +5,8 @@ ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/do
 
 RUN chmod +x /usr/local/bin/install-php-extensions && \
     set -eux; \
+    # Ensure /usr/local/bin exists
+    mkdir -p /usr/local/bin; \
     # Install runtime dependencies (only what's absolutely necessary)
     apk add --no-cache \
         bash \

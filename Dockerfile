@@ -13,8 +13,6 @@ RUN set -eux; \
 		bash \
 # Ghostscript is required for rendering PDF previews
 		ghostscript \
-# Alpine package for "imagemagick" contains ~120 .so files, see: https://github.com/docker-library/wordpress/pull/497
-		imagemagick \
 	;
 
 # install the PHP extensions we need (https://make.wordpress.org/hosting/handbook/handbook/server-environment/#php-extensions)
@@ -24,7 +22,6 @@ RUN set -ex; \
 		$PHPIZE_DEPS \
 		freetype-dev \
 		icu-dev \
-		imagemagick-dev libheif-dev \
 		libavif-dev \
 		libjpeg-turbo-dev \
 		libpng-dev \
@@ -46,39 +43,7 @@ RUN set -ex; \
 		mysqli \
 		zip \
 	; \
-# WARNING: imagick is likely not supported on Alpine: https://github.com/Imagick/imagick/issues/328
-# https://pecl.php.net/package/imagick
-# https://github.com/Imagick/imagick/commit/5ae2ecf20a1157073bad0170106ad0cf74e01cb6 (causes a lot of build failures, but strangely only intermittent ones 🤔)
-# see also https://github.com/Imagick/imagick/pull/641
-# this is "pecl install imagick-3.7.0", but by hand so we can apply a small hack / part of the above commit
-# Imagick
-ARG IMAGICK_VERSION=3.7.0
-RUN set -eux \
-    && apk add --no-cache \
-      imagemagick \
-      jpegoptim \
-      libwebp \
-      libwebp-tools \
-    && apk add --no-cache --virtual .imagick-deps \
-      $PHPIZE_DEPS \
-      imagemagick-dev \
-      libjpeg-turbo-dev \
-      libpng-dev \
-      libwebp-dev \
-#    && pecl install imagick-"$IMAGICK_VERSION" \
-#    && docker-php-ext-enable imagick \
-#    && apk del .imagick-deps
-    && curl -L -o /tmp/imagick.tar.gz https://github.com/Imagick/imagick/archive/tags/${IMAGICK_VERSION}.tar.gz \
-    && tar --strip-components=1 -xf /tmp/imagick.tar.gz \
-    && sed -i 's/php_strtolower/zend_str_tolower/g' imagick.c \
-    && phpize \
-    && ./configure \
-    && make \
-    && make install \
-    && echo "extension=imagick.so" > /usr/local/etc/php/conf.d/ext-imagick.ini \
-    && rm -rf /tmp/* \
-    && apk del .imagick-deps
-    
+
 # some misbehaving extensions end up outputting to stdout 🙈 (https://github.com/docker-library/wordpress/issues/669#issuecomment-993945967)
 	out="$(php -r 'exit(0);')"; \
 	[ -z "$out" ]; \

@@ -12,7 +12,7 @@ It’s unclear why WordPress has not released an official image for PHP 8.4, so 
 
 ## Features
 
-- Uses [docker-php-extension-installer](https://github.com/mlocati/docker-php-extension-installer) to install extensions.
+- Uses [docker-php-extension-installer](https://github.com/mlocati/docker-php-extension-installer) to install extensions (latest stable version).
 - Keeps all extensions as in the original and adds `WP-CLI`.
 - Supports two common platforms: `amd64` and `arm64`.
 - Updated once a day at 12:00 AM Vietnam time (UTC +7), ensuring the use of the latest versions.

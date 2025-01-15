@@ -3,10 +3,10 @@ FROM php:8.4-fpm-alpine
 # Install docker-php-extension-installer
 ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
 
-RUN chmod +x /usr/local/bin/install-php-extensions && \
+# Ensure /usr/local/bin exists and set permissions
+RUN mkdir -p /usr/local/bin && \
+    chmod +x /usr/local/bin/install-php-extensions && \
     set -eux; \
-    # Ensure /usr/local/bin exists
-    mkdir -p /usr/local/bin; \
     # Install runtime dependencies (only what's absolutely necessary)
     apk add --no-cache \
         bash \

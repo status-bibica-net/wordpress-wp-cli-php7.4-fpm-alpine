@@ -1,17 +1,16 @@
 FROM php:8.4-fpm-alpine
 
-# Tải và cài đặt docker-php-extension-installer
+# Install docker-php-extension-installer
 ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
 
-RUN set -eux && \
-    chmod +x /usr/local/bin/install-php-extensions && \
-    \
-    # Cài đặt phụ thuộc
+RUN chmod +x /usr/local/bin/install-php-extensions && \
+    set -eux; \
+    # Install runtime dependencies (only what's absolutely necessary)
     apk add --no-cache \
         bash \
-        ghostscript && \
+        ghostscript; \
     \
-    # Cài đặt extensions PHP
+    # Install PHP extensions using docker-php-extension-installer
     install-php-extensions \
         bcmath \
         exif \
@@ -19,17 +18,18 @@ RUN set -eux && \
         intl \
         mysqli \
         zip \
-        imagick && \
+        imagick; \
     \
-    # Cấu hình OPcache
+    # Configure PHP settings
+    docker-php-ext-enable opcache; \
     { \
         echo 'opcache.memory_consumption=128'; \
         echo 'opcache.interned_strings_buffer=8'; \
         echo 'opcache.max_accelerated_files=4000'; \
         echo 'opcache.revalidate_freq=2'; \
-    } > /usr/local/etc/php/conf.d/opcache-recommended.ini && \
+    } > /usr/local/etc/php/conf.d/opcache-recommended.ini; \
     \
-    # Cấu hình log lỗi PHP
+    # Configure error logging
     { \
         echo 'error_reporting = E_ERROR | E_WARNING | E_PARSE | E_CORE_ERROR | E_CORE_WARNING | E_COMPILE_ERROR | E_COMPILE_WARNING | E_RECOVERABLE_ERROR'; \
         echo 'display_errors = Off'; \
@@ -40,17 +40,21 @@ RUN set -eux && \
         echo 'ignore_repeated_errors = On'; \
         echo 'ignore_repeated_source = Off'; \
         echo 'html_errors = Off'; \
-    } > /usr/local/etc/php/conf.d/error-logging.ini && \
+    } > /usr/local/etc/php/conf.d/error-logging.ini; \
     \
-    # Cài đặt WordPress
-    version='6.7.1' && \
-    sha1='dfb745d4067368bb9a9491f2b6f7e8d52d740fd1' && \
-    curl -o wordpress.tar.gz -fL "https://wordpress.org/wordpress-$version.tar.gz" && \
-    echo "$sha1 *wordpress.tar.gz" | sha1sum -c - && \
-    tar -xzf wordpress.tar.gz -C /usr/src/ && \
-    rm wordpress.tar.gz && \
+    # Clean up unnecessary files
+    rm -rf /var/cache/apk/* /tmp/* /var/tmp/* && \
     \
-    # Cấu hình WordPress
+    # Install WordPress
+    version='6.7.1'; \
+    sha1='dfb745d4067368bb9a9491f2b6f7e8d52d740fd1'; \
+    curl -o wordpress.tar.gz -fL "https://wordpress.org/wordpress-$version.tar.gz"; \
+    echo "$sha1 *wordpress.tar.gz" | sha1sum -c -; \
+    tar -xzf wordpress.tar.gz -C /usr/src/; \
+    rm wordpress.tar.gz; \
+    \
+    # Configure WordPress
+    [ ! -e /usr/src/wordpress/.htaccess ]; \
     { \
         echo '# BEGIN WordPress'; \
         echo ''; \
@@ -63,30 +67,28 @@ RUN set -eux && \
         echo 'RewriteRule . /index.php [L]'; \
         echo ''; \
         echo '# END WordPress'; \
-    } > /usr/src/wordpress/.htaccess && \
-    chown -R www-data:www-data /usr/src/wordpress && \
-    mkdir -p wp-content && \
+    } > /usr/src/wordpress/.htaccess; \
+    \
+    # Set up WordPress directories
+    chown -R www-data:www-data /usr/src/wordpress; \
+    mkdir -p wp-content; \
     for dir in /usr/src/wordpress/wp-content/*/ cache; do \
         dir="$(basename "${dir%/}")"; \
         mkdir -p "wp-content/$dir"; \
-    done && \
-    chown -R www-data:www-data wp-content && \
-    chmod -R 1777 wp-content && \
+    done; \
+    chown -R www-data:www-data wp-content; \
+    chmod -R 1777 wp-content; \
     \
-    # Cài đặt WP-CLI
-    curl -o /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && \
-    chmod +x /usr/local/bin/wp && \
-    \
-    # Sao chép các file cần thiết
-    cp /usr/local/bin/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh && \
-    chmod +x /usr/local/bin/docker-entrypoint.sh && \
-    \
-    # Dọn dẹp file tạm thời
-    rm -rf /var/cache/apk/* /tmp/* /var/tmp/* /usr/src/wordpress/wp-content/cache
+    # Install WP-CLI
+    curl -o /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar; \
+    chmod +x /usr/local/bin/wp
 
 VOLUME /var/www/html
 
+# Copy and set permissions for wp-config-docker.php and docker-entrypoint.sh
 COPY --chown=www-data:www-data wp-config-docker.php /usr/src/wordpress/
+COPY docker-entrypoint.sh /usr/local/bin/ && \
+    chmod +x /usr/local/bin/docker-entrypoint.sh
 
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["php-fpm"]

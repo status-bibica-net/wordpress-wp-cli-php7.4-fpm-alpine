@@ -49,10 +49,8 @@ RUN set -eux; \
 
 # Install WordPress
 RUN set -eux; \
-    version='6.7.1'; \
-    sha1='dfb745d4067368bb9a9491f2b6f7e8d52d740fd1'; \
-    curl -o wordpress.tar.gz -fL "https://wordpress.org/wordpress-$version.tar.gz"; \
-    echo "$sha1 *wordpress.tar.gz" | sha1sum -c -; \
+    version='latest'; \
+    curl -o wordpress.tar.gz -fL "https://wordpress.org/latest.tar.gz"; \
     tar -xzf wordpress.tar.gz -C /usr/src/; \
     rm wordpress.tar.gz; \
     \

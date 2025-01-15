@@ -12,12 +12,12 @@ RUN set -eux; \
     # Install PHP extensions using docker-php-extension-installer
     install-php-extensions \
         bcmath-^@stable \
-        exif \
-        gd \
-        intl \
-        mysqli \
-        zip \
-        imagick; \
+        exif-^@stable \
+        gd-^@stable \
+        intl-^@stable \
+        mysqli-^@stable \
+        zip-^@stable \
+        imagick-^@stable; \
     \
     # Configure PHP settings
     docker-php-ext-enable opcache; \

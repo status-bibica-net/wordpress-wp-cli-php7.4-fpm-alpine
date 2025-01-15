@@ -36,6 +36,10 @@ jobs:
           platforms: linux/amd64,linux/arm64
           output: type=docker,dest=./image.tar
 
+      # Kiểm tra tệp đã được lưu
+      - name: List files in the current directory
+        run: ls -al
+
       # Cài đặt docker-squash
       - name: Install docker-squash
         run: |
@@ -46,8 +50,14 @@ jobs:
       # Squash Docker image
       - name: Squash Docker image
         run: |
-          docker load -i ./image.tar
-          docker-squash -f bibica/wordpress-wp-cli-php8.4-fpm-alpine:latest -o ./wordpress-wp-cli-php8.4-fpm-alpine-squashed.tar
+          # Kiểm tra tệp image.tar có tồn tại không
+          if [ -f ./image.tar ]; then
+            docker load -i ./image.tar
+            docker-squash -f bibica/wordpress-wp-cli-php8.4-fpm-alpine:latest -o ./wordpress-wp-cli-php8.4-fpm-alpine-squashed.tar
+          else
+            echo "Tệp image.tar không tìm thấy."
+            exit 1
+          fi
 
       # Push Docker image after squashing
       - name: Push squashed Docker image

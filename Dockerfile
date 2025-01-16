@@ -16,7 +16,7 @@ RUN set -eux; \
         intl \
         mysqli \
         zip \
-        composer; \
+        @composer; \
     \
     # Configure PHP settings
     docker-php-ext-enable opcache; \

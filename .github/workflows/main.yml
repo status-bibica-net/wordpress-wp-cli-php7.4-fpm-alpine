@@ -31,5 +31,5 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           push: true
-          tags: bibicadotnet:wordpress-wp-cli-php7.4-fpm-alpine
+          tags: bibicadotnet/wordpress-wp-cli-php7.4-fpm-alpine
           platforms: linux/amd64,linux/arm64

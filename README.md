@@ -13,7 +13,6 @@ Running PHP 7.4 on Docker in 2025, is it possible?
 - Updated once a day at 12:00 AM Vietnam time (UTC +7), ensuring the use of the latest versions.
 
 ```
-php -v
 PHP 7.4.33 (cli) (built: Nov 12 2022 05:16:49) ( NTS )
 Copyright (c) The PHP Group
 Zend Engine v3.4.0, Copyright (c) Zend Technologies
@@ -21,8 +20,10 @@ Zend Engine v3.4.0, Copyright (c) Zend Technologies
 ```
 ```
 WP-CLI 2.11.0
+
 Composer version 2.8.4 2024-12-11 11:57:47
 PHP version 7.4.33 (/usr/local/bin/php)
+
 [PHP Modules]
 bcmath
 Core

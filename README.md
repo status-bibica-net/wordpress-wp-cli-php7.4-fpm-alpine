@@ -4,6 +4,9 @@
 I created a version based on the [Dockerfile](https://github.com/docker-library/wordpress/blob/0015d465b4115ade0e0f98b3df8b5c17ec4a98e4/latest/php8.3/fpm-alpine/Dockerfile) structure from WordPress.
 
 Running PHP 7.4 on Docker in 2025, is it possible?
+```
+docker pull bibicadotnet/wordpress-wp-cli-php7.4-fpm-alpine
+```
 
 ## Features
 
